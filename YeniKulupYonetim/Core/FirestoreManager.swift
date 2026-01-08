@@ -79,6 +79,7 @@ open class FirestoreManager: ObservableObject {
             "uid": p.uid,
             "email": p.email as Any,
             "displayName": p.displayName,
+            "role": p.role,
             "createdAt": p.createdAt
         ]
         if let updated = p.updatedAt { dict["updatedAt"] = updated }
@@ -88,8 +89,10 @@ open class FirestoreManager: ObservableObject {
     fileprivate static func decodeProfile(uid: String, data: [String: Any]) -> UserProfile {
         let email = data["email"] as? String
         let displayName = (data["displayName"] as? String) ?? ""
+        let role = (data["role"] as? String) ?? "user"
         let createdAt = (data["createdAt"] as? Date) ?? Date()
         let updatedAt = data["updatedAt"] as? Date
-        return UserProfile(uid: uid, email: email, displayName: displayName, createdAt: createdAt, updatedAt: updatedAt)
+        
+        return UserProfile(uid: uid, email: email, displayName: displayName, role: role, createdAt: createdAt, updatedAt: updatedAt)
     }
 }

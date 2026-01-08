@@ -20,7 +20,11 @@ import FirebaseAuth
 final class AppSession: AuthManager {
     @Published var currentUser: AppUser?
     @Published var isSignedIn: Bool = false
-    @Published var profileExists: Bool? // nil: yükleniyor, true/false: sonuç
+    
+    @Published var profileExists: Bool?
+    
+    // YENİ: Tam profil verisini burada tutacağız
+    @Published var userProfile: UserProfile?
 
     private let firestore = FirestoreManager()
 
@@ -33,18 +37,18 @@ final class AppSession: AuthManager {
             if let u = user {
                 self.currentUser = AppUser(uid: u.uid, email: u.email)
                 self.isSignedIn = true
-                Task { await self.refreshProfileStatus() }
+                Task {
+                    await self.refreshProfileStatus()
+                    // YENİ: Giriş yapınca profili de çek
+                    await self.fetchFullProfile(uid: u.uid)
+                }
             } else {
                 self.currentUser = nil
+                self.userProfile = nil // Çıkışta sıfırla
                 self.isSignedIn = false
                 self.profileExists = nil
             }
         }
-        #else
-        // FirebaseAuth yoksa, LoginView sahte akışla çalışır ama gerçek oturum olmaz.
-        self.currentUser = nil
-        self.isSignedIn = false
-        self.profileExists = nil
         #endif
     }
 
@@ -53,8 +57,17 @@ final class AppSession: AuthManager {
         do {
             profileExists = try await firestore.profileExists(uid: uid)
         } catch {
-            // Firestore yoksa veya hata olursa profil durumunu bilinmiyor yapalım.
             profileExists = nil
+        }
+    }
+    
+    // YENİ FONKSİYON: Profili getir ve memory'ye yaz
+    func fetchFullProfile(uid: String) async {
+        do {
+            let profile = try await firestore.fetchProfile(uid: uid)
+            self.userProfile = profile
+        } catch {
+            print("Profil çekilemedi: \(error.localizedDescription)")
         }
     }
 }
